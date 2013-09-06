@@ -1,0 +1,1 @@
+BAE Cli Tool is an open source client chatting with BAE server, it use MIT license

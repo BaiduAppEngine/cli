@@ -1,0 +1,13 @@
+Source: bae
+Section: python
+Priority: optional
+Maintainer: Baidu Inc. (BAE Team)
+Build-Depends: python-requests (>=1.1.0), python-dev (>=2.7.0), python-colorama (>=0.2.4), python-crypto(>=2.6)
+
+Package: bae
+Architecture: all
+Homepage: http://developer.baidu.com
+XB-Python-Version: ${python:Depends}
+Depends: ${python:Depends}
+Description: A Bae Cli Tool
+ You can Visit http://developer.baidu.com to get more information about BAE
