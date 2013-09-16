@@ -1,4 +1,4 @@
-#-*- coding : utf-8 -*-
+#*- coding : utf-8 -*-
 '''
 Bae Client contains main apis for BAE
 
@@ -306,10 +306,6 @@ class BaeClient:
     '''     
 
     def _do_publish(self, bae_app_conf):
-        if not bae_app_conf:
-            g_messager.error("no local bae app found, please goto a bae app dir to publish code")
-            sys.exit(-1)
-
         data = {}
         data["bae_appid"] = bae_app_conf.model.appid
         data["url"]       = ""
@@ -322,7 +318,15 @@ class BaeClient:
     def app_publish(self, parser):
         app_id        = self._get_app_id(parser)
         bae_app_conf  = self._get_cur_bae_conf(app_id, parser)
-        self._do_publish(bae_app_conf)
+        
+        if not bae_app_conf:
+            g_messager.error("no local bae app found, please goto a bae app dir to publish code")
+            sys.exit(-1)
+        if not parser.local:
+            self._do_publish(bae_app_conf)
+        else:
+            cmd = "bae_build %s %s %s"%(bae_app_conf.model.lang_type, bae_app_conf.dirname(), bae_app_conf.model.domain)
+            os.system(cmd)
         
     def app_list(self, parser):
         if parser.detail:
@@ -483,12 +487,44 @@ class BaeClient:
                 g_messager.warning("Please use set baeappid or at least cd to a bae app directory")
                 sys.exit(-1)
 
-        data["bae_appid"] = bae_app_conf.model.appid
-        data["ins_ids"]   = json.dumps(parser.insids)
-        ret = self.rest.get(API_ENTRY + "/bae/bce/app/restartIns", data = data)
-        taskid = ret["taskid"]
+        if not parser.local:
+            data["bae_appid"] = bae_app_conf.model.appid
+            data["ins_ids"]   = json.dumps(parser.insids)
+            ret = self.rest.get(API_ENTRY + "/bae/bce/app/restartIns", data = data)
+            taskid = ret["taskid"]
 
-        g_messager.trace("Restart success")
+            g_messager.trace("Restart success")
+        else:
+            cmd = "bae_run %s start"%bae_app_conf.model.lang_type
+            os.system(cmd)
+
+    def instance_start(self, parser):
+        data = {}
+        app_id       = self._get_app_id(parser)
+        bae_app_conf = self._get_cur_bae_conf(app_id, parser)
+
+        if not bae_app_conf:
+                g_messager.warning("Please use set baeappid or at least cd to a bae app directory")
+                sys.exit(-1)
+        if not parser.local:
+            pass
+        else:
+            cmd = "bae_run %s start"%bae_app_conf.model.lang_type
+            os.system(cmd)
+
+    def instance_stop(self, parser): 
+        data = {}
+        app_id       = self._get_app_id(parser)
+        bae_app_conf = self._get_cur_bae_conf(app_id, parser)
+
+        if not bae_app_conf:
+                g_messager.warning("Please use set baeappid or at least cd to a bae app directory")
+                sys.exit(-1)
+        if not parser.local:
+            pass
+        else:
+            cmd = "bae_run %s stop"%bae_app_conf.model.lang_type
+            os.system(cmd)
 
     def log_list(self, parser):
         data  = {}

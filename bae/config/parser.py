@@ -44,7 +44,8 @@ class BaeParser:
 
         app_support_parser   = app_sub_parser.add_parser("support", help = "Get your Bae Supported languages, services", parents = [app_common_parser])
         app_setup_parser     = app_sub_parser.add_parser("setup", help = "Setup a developer app to local directory", parents = [app_common_parser])
-        app_publish_parser   = app_sub_parser.add_parser("publish", help = "Public your code")
+        app_publish_parser   = app_sub_parser.add_parser("publish", help = "Publish your code")
+        app_publish_parser.add_argument("--local", action = "store_true", help = "[For local environment] publish your code in local environment")	
         app_update_parser    = app_sub_parser.add_parser("update", help = "Update a Bae app by appid, if no bae id given ,it will update all bae app")
         app_update_parser.add_argument("baeappids", help = "setup a bae app with bae appid, your can use '{0} app list' get bae appid".format(PROG_NAME),
                                       nargs = "*")
@@ -105,7 +106,12 @@ class BaeParser:
         instance_scale_parser    = instance_sub_parser.add_parser("scale", help = "Scale your instance", parents = [instance_common_parser])
         instance_scale_parser.add_argument("scalenum", type=int, action="store")
         instance_restart_parser  = instance_sub_parser.add_parser("restart", help = "Restart a instance", parents = [instance_common_parser])
-        instance_restart_parser.add_argument("insids",  nargs = "+",action = "store")
+        instance_restart_parser.add_argument("--local", action = "store_true", help = "[For local environment] restart local web server")
+        instance_restart_parser.add_argument("insids",  nargs = "*",action = "store")
+        instance_start_parser  = instance_sub_parser.add_parser("start", help = "Start a instance", parents = [instance_common_parser])
+        instance_start_parser.add_argument("--local", action = "store_true", help = "[For local environment] Start local web server")
+        instance_stop_parser  = instance_sub_parser.add_parser("stop", help = "Stop a instance", parents = [instance_common_parser])
+        instance_stop_parser.add_argument("--local", action = "store_true", help = "[For local environment] Stop local web server")
 
         self.args = self.base_parser.parse_args()
     
