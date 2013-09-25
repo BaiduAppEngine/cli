@@ -392,14 +392,95 @@ class BaeClient:
         service  = g_messager.select("Select a service", services)[1]
 
         if service:
-            idx, package  = g_messager.select("Select a falvor", service.service_package)
+            #idx, package  = g_messager.select("Select a falvor", service.service_package) ### comments by pysqz
             data["service_name"]     = service.service_name
-            data["service_package"]  = idx-1
+            #data["service_package"]  = idx-1 ### comments by pysqz
+            data["service_package"]  = 1
             ret = self.rest.get(API_ENTRY + "/bae/service/usermgr/createResource", data = data)
 
         g_messager.success("Create service {0} success".format(service.service_name))
         for k, v in ret["resource_info"].iteritems():
             g_messager.output("{0} : {1}".format(k, v))
+
+    def service_mysql(self, parser):
+        def _progress(uri, flag = True):
+            timeout = 300
+            if uri.startswith("import"):
+                status_info = {"1": "waiting", "2": "downloading", "3": "importing", "10": "imported", "-1": "fail to import"}
+            else:
+                status_info = {"1": "waiting", "2": "exporting", "3": "compressing", "4": "uploading", "10": "exported", "-1": "fail to export"}
+            start_time = time.time() 
+            while 1:
+                job_status = self.rest.get(API_ENTRY + "/bae/sqld/db/" + uri, data = data)
+                msg = status_info.get(job_status.get("job_status"), "")
+                if job_status["job_status"] == "-1":
+                    msg += "\t Err:%s"%job_status["errmsg"]
+                g_messager.trace("Status: %s"%msg)
+                if job_status["job_status"] in ["10", "-1"] or time.time() - start_time > timeout or not flag:
+                    break
+                time.sleep(1)  
+
+        app_id = self._get_app_id(parser)
+        data   = {}
+        data["app_id"] = app_id
+
+        ret = self.rest.get(API_ENTRY + "/bae/service/usermgr/getResourceList", data = data)
+        database = filter(lambda x: x.service_name == "BaeMySQLService", [Resource(resource_conf) for resource_conf in ret["resource_list"]])
+        if len(database) != 1:
+            g_messager.warning("failed to get valid MySQL resource, please make sure your MySQL is enabled")
+            sys.exit(-1)
+        
+        data["database_id"] = database[0].resource_name
+        
+        ### FIXME: the number of users' MySQL is more than 1, we also can deal with --db  
+        #if not parser.database_id:
+        #    g_messager.warning("please set argument '--db'")
+        #    sys.exit(-1)
+        #data["database_id"] = parser.database_id
+        # comments by pysqz
+     
+        mysql_action = parser.mysqlaction 
+        
+        if mysql_action == "import":
+            if parser.FROM.startswith("http://") or parser.FROM.startswith("https://"):
+                data['url'] = parser.FROM
+                rest_uri = "importTask" 
+            else:
+                if ":" not in parser.FROM:
+                    g_messager.warning("please set bcs FROM with 'bucket:object'")
+                    sys.exit(-1)
+                data['bucket'], data['object'] = parser.FROM.split(":", 1)
+                rest_uri = "importBCS"
+            
+            ret = self.rest.get(API_ENTRY + "/bae/sqld/db/" + rest_uri, data = data) 
+            if ret.get("condition", -1) != 0:
+                g_messager.error("failed to run mysql import, Err: %s"%ret["errmsg"])
+                sys.exit(-1) 
+                                   
+            if parser.progress:
+                _progress("importStat")
+                                          
+        elif mysql_action == "export":
+            data['bucket'] = parser.TO
+            data['compress'] = parser.format
+                
+            ret = self.rest.get(API_ENTRY + "/bae/sqld/db/exportTask", data = data)              
+            if ret.get("condition", -1) != 0:
+                g_messager.error("failed to run mysql export, Err: %s"%ret["errmsg"])
+                sys.exit(-1)
+ 
+            if parser.progress:
+                _progress("exportStat")  
+
+        elif mysql_action == "status":
+            if not parser.JOB or parser.JOB not in ["import", "export"]:
+                g_messager.warning("please set argument with 'import' or 'export'")
+                sys.exit(-1)
+            
+            _progress("%sStat"%parser.JOB, False) 
+             
+        else:
+            g_messager.error("invalid argument, just suportted (import | export | status)")
 
     def domain_list(self, parser):
         parser.force = True
@@ -507,7 +588,7 @@ class BaeClient:
                 g_messager.warning("Please use set baeappid or at least cd to a bae app directory")
                 sys.exit(-1)
         if not parser.local:
-            pass
+            g_messager.trace("start your online server. Comming soon...")
         else:
             cmd = "bae_run %s start"%bae_app_conf.model.lang_type
             os.system(cmd)
@@ -521,7 +602,7 @@ class BaeClient:
                 g_messager.warning("Please use set baeappid or at least cd to a bae app directory")
                 sys.exit(-1)
         if not parser.local:
-            pass
+            g_messager.trace("stop your online server. Comming soon...")
         else:
             cmd = "bae_run %s stop"%bae_app_conf.model.lang_type
             os.system(cmd)
