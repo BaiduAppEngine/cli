@@ -442,15 +442,14 @@ class BaeClient:
         mysql_action = parser.mysqlaction 
         
         if mysql_action == "import":
-            if not parser._from:
-                g_messager.warning("please set argument '--from'")
-                sys.exit(-1)
-
-            if parser._from.startswith("http://") or parser._from.startswith("https://"):
-                data['url'] = parser._from
+            if parser.FROM.startswith("http://") or parser.FROM.startswith("https://"):
+                data['url'] = parser.FROM
                 rest_uri = "importTask" 
             else:
-                data['bucket'], data['object'] = parser._from.split(":", 1)
+                if ":" not in parser.FROM:
+                    g_messager.warning("please set bcs FROM with 'bucket:object'")
+                    sys.exit(-1)
+                data['bucket'], data['object'] = parser.FROM.split(":", 1)
                 rest_uri = "importBCS"
             
             ret = self.rest.get(API_ENTRY + "/bae/sqld/db/" + rest_uri, data = data) 
@@ -462,11 +461,7 @@ class BaeClient:
                 _progress("importStat")
                                           
         elif mysql_action == "export":
-            if not parser.to:
-                g_messager.warning("please set argument '--to'")
-                sys.exit(-1)
-
-            data['bucket'] = parser.to
+            data['bucket'] = parser.TO
             data['compress'] = parser.format
                 
             ret = self.rest.get(API_ENTRY + "/bae/sqld/db/exportTask", data = data)              
@@ -478,11 +473,11 @@ class BaeClient:
                 _progress("exportStat")  
 
         elif mysql_action == "status":
-            if not parser.job or parser.job not in ["import", "export"]:
-                g_messager.warning("please set argument '--job' with (import|export)")
+            if not parser.JOB or parser.JOB not in ["import", "export"]:
+                g_messager.warning("please set argument with 'import' or 'export'")
                 sys.exit(-1)
             
-            _progress("%sStat"%parser.job, False) 
+            _progress("%sStat"%parser.JOB, False) 
              
         else:
             g_messager.error("invalid argument, just suportted (import | export | status)")
