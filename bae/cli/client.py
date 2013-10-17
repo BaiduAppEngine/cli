@@ -101,10 +101,10 @@ class BaeClient:
             min_ver = ret["min_version"]
             cur_ver = ret["cur_version"]
             my_ver  = VERSION
-            if cmp(my_ver, min_ver):
+            if cmp(my_ver, min_ver) < 0:
                 g_messager.error("your BAE cli version is out of date, please run 'pip install bae --upgrade' to update")
                 sys.exit(-1)
-            if cmp(my_ver, cur_ver):
+            if cmp(my_ver, cur_ver) < 0:
                 g_messager.warning("new BAE cli version {0} availiable, please run 'pip install bae --upgrade'to update")
         except KeyError:
             pass
