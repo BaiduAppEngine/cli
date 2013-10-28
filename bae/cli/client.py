@@ -647,6 +647,7 @@ class BaeClient:
         data["bae_appid"] = bae_app_conf.model.appid
         data["fid"]       = parser.instanceid
         data["filename"]  = parser.file
+        data["limit"]     = parser.max or 50
         data["log_type"]  = "local"
 
         ret = self.rest.get(API_ENTRY + "/bae/farsee/log/%s" %(method), data = data)
