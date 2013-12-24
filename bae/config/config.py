@@ -255,8 +255,10 @@ status:          {6}
 
 class ServicePackage(AttrDict):
     _expect_keys = (
-        ("type_name",       str, True),
-        ("type_detail",     str, True),
+        #("type_name",       str, True), ###comments by pysqz
+        #("type_detail",     str, True), ###comments by pysqz
+        ("type_name",       str, False),
+        ("type_detail",     str, False),
         )
 
     def __init__(self, config = None):
@@ -270,7 +272,7 @@ class Resource(AttrDict):
         ("resource_name",   str, True),
         ("service_name",    str, True),
         ("service_type",    str, True),
-        ("service_package", ServicePackage, True),
+        #("service_package", ServicePackage, True), ###comments by pysqz
         ("base_info",       dict, True),
         )
 
@@ -279,7 +281,8 @@ class Resource(AttrDict):
 
     def tuple(self):
         base_info  = "\n".join(["{0}:{1}".format(k,v) for k, v in self.base_info.iteritems()])
-        return (self.resource_name, self.resource_name, self.service_name, self.service_package.type_name, base_info)
+        #return (self.resource_name, self.resource_name, self.service_name, self.service_package.type_name, base_info) ###comments by pysqz
+        return (self.resource_name, self.service_name, self.service_name, "N/A", base_info)
         
     
 class Service(AttrDict):
@@ -287,7 +290,8 @@ class Service(AttrDict):
         ("service_name",    str, True),
         ("display_name",    str, True),
         #("provider",       str, True),
-        ("service_package", ServicePackage, True),
+        #("service_package", ServicePackage, True), ###comments by pysqz
+        ("service_package", ServicePackage, False),
         )
     
     def __init__(self, config = None):
@@ -297,7 +301,8 @@ class Service(AttrDict):
         return self.service_name
 
     def tuple(self):
-        return (self.service_name, self.display_name, "".join([x.type_name for x in self.service_package]))
+        #return (self.service_name, self.display_name, "".join([x.type_name for x in self.service_package])) ###comments by pysqz
+        return (self.service_name, self.display_name, "N/A")
 
 class BaeInstance(AttrDict):
     _expect_keys = (

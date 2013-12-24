@@ -2,7 +2,7 @@
 import sys
 import os
 
-from   argparse    import ArgumentParser
+from   argparse    import ArgumentParser, SUPPRESS
 from   constants   import *
 
 class BaeBaseParser(ArgumentParser):
@@ -44,7 +44,8 @@ class BaeParser:
 
         app_support_parser   = app_sub_parser.add_parser("support", help = "Get your Bae Supported languages, services", parents = [app_common_parser])
         app_setup_parser     = app_sub_parser.add_parser("setup", help = "Setup a developer app to local directory", parents = [app_common_parser])
-        app_publish_parser   = app_sub_parser.add_parser("publish", help = "Public your code")
+        app_publish_parser   = app_sub_parser.add_parser("publish", help = "Publish your code")
+        app_publish_parser.add_argument("--local", action = "store_true", help = "[For local environment] publish your code in local environment")	
         app_update_parser    = app_sub_parser.add_parser("update", help = "Update a Bae app by appid, if no bae id given ,it will update all bae app")
         app_update_parser.add_argument("baeappids", help = "setup a bae app with bae appid, your can use '{0} app list' get bae appid".format(PROG_NAME),
                                       nargs = "*")
@@ -96,16 +97,34 @@ class BaeParser:
         service_status_parser    = service_sub_parser.add_parser("status", help    = "list all service of your application")
         service_apply_parser     = service_sub_parser.add_parser("create", help    = "apply a service flavor")
         service_apply_parser.add_argument("-t", "--type",action = "store", help = "set your service flavor type")
+        
+        service_mysql_parser    = service_sub_parser.add_parser("mysql", help = "manage your mysql service")
+	service_mysql_sub_parser = service_mysql_parser.add_subparsers(dest = "mysqlaction")
+        mysql_common_parser = BaeBaseParser(add_help = False)
+        mysql_common_parser.add_argument("--db", action = "store", dest = "database_id", help = SUPPRESS)
+        mysql_action_common_parser = BaeBaseParser(add_help = False)
+        mysql_action_common_parser.add_argument("--progress", "-P", action = "store_true", help = "print information showing the progress")
+        service_mysql_import_parser = service_mysql_sub_parser.add_parser("import", help = "MySQL Import: restore your database from url or bcs", parents = [mysql_common_parser, mysql_action_common_parser])
+        service_mysql_import_parser.add_argument("FROM", action = "store", help = "url or bcs info as 'bucket:object'")
+	service_mysql_export_parser = service_mysql_sub_parser.add_parser("export", help = "MySQL Export: export your database as a backup", parents = [mysql_common_parser, mysql_action_common_parser])
+        service_mysql_export_parser.add_argument("TO", action = "store", help = "bcs bucket")
+        service_mysql_export_parser.add_argument("--format", action = "store", help = "backup format, including sql(DEFAULT), zip, gzip, bzip2.", default = "sql")
+        service_mysql_status_parser = service_mysql_sub_parser.add_parser("status", help = "list mysql job (import|export) status", parents = [mysql_common_parser])
+        service_mysql_status_parser.add_argument("JOB", action = "store", help = "set job type ['import', 'export']")        
 
         instance_sub_parser      = instance_parser.add_subparsers(dest = "instancecmd")
         instance_common_parser   = BaeBaseParser(add_help = False)
         instance_common_parser.add_argument("--baeappid", action = "store", required=False)
+        instance_localenv_common_parser = BaeBaseParser(add_help = False)
+        instance_localenv_common_parser.add_argument("--local", action = "store_true", help = "[For local environment] manage local web server")
         instance_list_parser     = instance_sub_parser.add_parser("list", help = "List all your instance", parents=[instance_common_parser])
         instance_list_parser.add_argument("insids", nargs = "*")
         instance_scale_parser    = instance_sub_parser.add_parser("scale", help = "Scale your instance", parents = [instance_common_parser])
         instance_scale_parser.add_argument("scalenum", type=int, action="store")
-        instance_restart_parser  = instance_sub_parser.add_parser("restart", help = "Restart a instance", parents = [instance_common_parser])
-        instance_restart_parser.add_argument("insids",  nargs = "+",action = "store")
+        instance_restart_parser  = instance_sub_parser.add_parser("restart", help = "Restart a instance", parents = [instance_common_parser, instance_localenv_common_parser])
+        instance_restart_parser.add_argument("insids",  nargs = "*",action = "store")
+        instance_start_parser  = instance_sub_parser.add_parser("start", help = "Start a instance", parents = [instance_common_parser, instance_localenv_common_parser])
+        instance_stop_parser  = instance_sub_parser.add_parser("stop", help = "Stop a instance", parents = [instance_common_parser, instance_localenv_common_parser])
 
         self.args = self.base_parser.parse_args()
     
