@@ -53,7 +53,7 @@ class BaeMessage:
     def yellowstr(self, message):
         return self.colorstr(message, colorama.Fore.YELLOW)
 
-    def _print(self, message, color = None, type = NORMAL, select_list = []):
+    def _print(self, message, color = None, type = NORMAL, *args):
         #message = message.decode("utf-8")
         if type == NORMAL:
             msgs = message.splitlines()
@@ -81,17 +81,18 @@ class BaeMessage:
                     self.warning("Please set 'Y' for yes or 'N' for no")
                     answer = raw_input(msg)
         if type == SELECT:
-            options    = zip((str(x+1) for x in range(0, len(select_list))), select_list)
-            answer_map = dict(options)
+            if len(args) > 1:
+                print "\n".join("{0} : {1}".format(index+1,getattr(option,args[1])) for index, option in enumerate(args[0]))
+            else:
+                print "\n".join("{0} : {1}".format(index+1,option) for index, option in enumerate(args[0]))
 
-            print "\n".join("{0} : {1}".format(option[0], option[1]) for option in options)
             while True:
-                msg    = self.colorstr("{0} [{1}-{2}]>>  ".format(message, 1, len(select_list)) , color)
+                msg    = self.colorstr("{0} [{1}-{2}]>>  ".format(message, 1, len(args[0])) , color)
                 answer = raw_input(msg)
-                if answer_map.has_key(answer):
-                    return (int(answer), answer_map[answer])
-                elif answer == '-1':
-                    return (-1, "")
+                if answer.isdigit():
+                    answer = int(answer)
+                    if answer <= len(args[0]) and answer >=1:
+                        return (answer, args[0][answer-1])
         
         if type == PASSWORD:
             msg = self.colorstr("{0} >> ".format(message), color)
@@ -133,8 +134,8 @@ class BaeMessage:
     def input(self, message):
         return self._print(message, colorama.Fore.GREEN, INPUT)
 
-    def select(self, message, select_list):
-        return self._print(message, colorama.Fore.GREEN, SELECT, select_list = select_list)
+    def select(self, message, *args):
+        return self._print(message, colorama.Fore.GREEN, SELECT, *args)
 
     def password(self, message):
         return self._print(message, colorama.Fore.GREEN, PASSWORD)

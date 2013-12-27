@@ -51,8 +51,8 @@ class AttrDict:
     
 class DevUser(AttrDict):
     _expect_keys = (
-        ("cipher",    str,  False), 
-        ("name",      str,  False)
+        ("access_token", str,  False), 
+        ("name",         str,  False)
         )
 
     def __init__(self, config = None):
@@ -62,6 +62,21 @@ class DevUser(AttrDict):
         return '''User Infomations:
 User name:{0}'''.format(self.name)
         return ""
+
+class BasicPackage(AttrDict):
+    _expect_keys = (
+        ("id",      str, True),
+        ("display", str, True),
+        ("price",   str, True),
+        ("resource", str, True),
+        ("type",     str, True),
+        )
+    def __init__(self, config = None):
+        AttrDict.__init__(self, config, BasicPackage._expect_keys)
+    
+    def __str__(self):
+        return ""
+
 
 class BaeInfo(AttrDict):
     _expect_keys = (
@@ -84,24 +99,18 @@ Cur  Worker AppsNumber : {3}'''.format(
             str(self.cidWorkerNum), 
             str(self.cidWebappNum))
 
-class BaeSupport(AttrDict):
+class BaeSolution(AttrDict):
     _expect_keys = (
-        ("lang_types",    str,  True),
-        ("createtypes",   str,  True),
-        ("version_tools", str,  True)
+        ("lang",   str,  True),
+        ("name",   str,  True),
+        ("type",   str,  True)
         )
 
     def __init__(self, config = None):
-        AttrDict.__init__(self, config, BaeSupport._expect_keys)
+        AttrDict.__init__(self, config, BaeSolution._expect_keys)
 
     def __str__(self):
-        return '''supported language      : {0} 
-supported runtime Types : {1}
-code Version Tools      : {2}'''.format(
-            ", ".join(self.lang_types), 
-            ", ".join(self.createtypes),
-            ", ".join(self.version_tools)
-            )
+        return self.name
 
 class BaeGlobals(AttrDict):
     _expect_keys = (
@@ -208,8 +217,9 @@ status          : {11}
 
 class DevApp(AttrDict):
     _expect_keys = (
-        ("app_id",   str,    True),
-        ("support",BaeSupport, False)
+        ("app_id",     str,    True),
+        ("solutions",  BaeSolution, False),
+        ("packages",   BasicPackage, False)
        )
 
     def __init__(self, config = None):
@@ -251,7 +261,6 @@ user  ID :       {4}
 instance count:  {5}
 status:          {6}
 '''.format(self.gid, self.name, self.lang, self.type, self.userid, self.inum, _instance_status_str(BaeInstanceGroup._status, self.status))
-
 
 class ServicePackage(AttrDict):
     _expect_keys = (

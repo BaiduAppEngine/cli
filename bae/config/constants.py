@@ -1,6 +1,6 @@
 API_ENTRY = "https://openapi.baidu.com/rest/2.0"
-ONEKEY_ENTRY = "http://csdk.baidu.com"
-VERSION = "0.0.1"
+ONEKEY_ENTRY = "http://csdk.baidu.com/cli_get_token"
+VERSION = "0.0.4"
 PROG    = "Bae Client"
 PROG_NAME = "bae"
 LICENSE = '''Bae Client Tools

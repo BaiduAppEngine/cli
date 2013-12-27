@@ -4,15 +4,17 @@ import json
 import urllib
 import requests
 import uuid
+import os
+import platform
 
-from   ..config.constants import ONEKEY_ENTRY, API_ENTRY, VERSION, PROG_NAME, USER_AGENT
+from   ..config.constants import ONEKEY_ENTRY, API_ENTRY, VERSION, PROG_NAME
 from   ..errors           import *
 from   ..cli.messages     import g_messager
 
 RETRY = 3
 TIMEOUT = 20
 class BaeRest:
-    def __init__(self, cipher = None, debug = False):
+    def __init__(self, access_token, debug = False):
         self._debug = debug
         if debug:
             try:
@@ -25,15 +27,21 @@ class BaeRest:
                     requests.packages.urllib3.connectionpool.HTTPConnection.debuglevel  = 1
                 except ImportError:
                     g_messager.bug("You havn't install python-requests or urllib3, debug mode will DOWN")
-        self._cipher = cipher
+        self._access_token = access_token
 
-    def try_auth(self):
-        if not hasattr(self, "_access_token"):
-            if self._cipher:
-                self.auth()
+    def _get_user_agent(self):
+        try:
+            plat = "%s %s" %(platform.platform(), platform.version())
+        except Exception:
+            plat = "unknown"
+
+        if os.environ.has_key("BAE_LOCALENV_VERSION"):
+            plat = "LOCALENV : %s" %(os.environ["BAE_LOCALENV_VERSION"])
+
+        return 'BAE CLI %s "%s"' %(VERSION, plat)
+        
 
     def add_token(self, data):
-        self.try_auth()
         if data is None or len(data) == 0:
             data = {"access_token": self._access_token}
         else:
@@ -45,7 +53,6 @@ class BaeRest:
         pass
 
     def post(self, path, data = None, require_code = False, require_token = True):
-        self.try_auth()
         if require_token:
             url_path = path + "?" + urllib.urlencode({"access_token":self._access_token})
         else:
@@ -67,7 +74,7 @@ class BaeRest:
     def _session(self):
         if not hasattr(self, "session") or not self.session:
             headers = {'Accept' : 'application/json',
-                       'User-Agnet' : USER_AGENT}
+                       'User-Agent' : self._get_user_agent()}
             self.session         = requests.session()
             self.session.headers = headers
             self.hooks = {
@@ -106,7 +113,7 @@ class BaeRest:
                 if str(obj["error_code"]) == bae_codes.need_login \
                 or str(obj["error_code"]) == bae_codes.need_mco_login \
                 or str(obj["error_code"]) == bae_codes.token_invalid:
-                    msg = "Authenticate error: {msg}.\nthis may caused by user infomation expired please rerun '{PROG} init' ".format(msg = _bae_msg(obj), PROG = PROG_NAME)
+                    msg = "Authenticate error: {%s}\n please get a token from %s, then use '{%s} login'" %(_bae_msg(obj), ONEKEY_ENTRY, PROG_NAME)
                 else:
                     msg = _bae_msg(obj)
                 raise BaeRestError(obj["error_code"], msg)
@@ -114,9 +121,3 @@ class BaeRest:
                 _server_error()
             except ValueError:
                 _server_error()
-    def auth(self, cipher = None):
-        if cipher:
-            self._cipher = cipher
-        data = {"data": self._cipher}
-        obj = self.get(ONEKEY_ENTRY + "/cliauth", data, require_code = True, require_token = False)
-        self._access_token = obj["access_token"]

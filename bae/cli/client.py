@@ -51,7 +51,7 @@ class BaeClient:
             if parser.cmd == "login":
                 raise BaeConfigError("Nothing")
             API_ENTRY = self.globalconfig.model.api_entry
-            self.rest = BaeRest(cipher = self.globalconfig.model.user.cipher, debug = parser.debug)
+            self.rest = BaeRest(access_token = self.globalconfig.model.user.access_token, debug = parser.debug)
             self._check_version()
         except (BaeConfigError, IOError):
             if parser.cmd != "login":
@@ -93,7 +93,8 @@ class BaeClient:
 
     def _check_version(self):
         def cmp_version(a, b):
-            return cmp([int(i) for i in a.split(".")], [int(i) for i in a.split(".")])
+            return cmp(a.split('.'), b.split("."))
+
         try:
             data = {}
             data["tool_name"] = "cli"
@@ -126,39 +127,45 @@ class BaeClient:
 
     #Init Global Varaibles
     def login(self, parser):
-        username = g_messager.input("please input your Baidu user name:")
-        password = g_messager.password("please input your password:", )
-        isphone  = g_messager.yes_or_no("is your username a phone number (Y/N):")
-        buser    = BaiduUser(username, password, isphone)
-        cipher   = buser.cipher() 
-
-        try : 
-            self.rest.auth(cipher)
-        except BaeRestError, e:
-            g_messager.error(str(e))
-            g_messager.error("authentication error for user {username}".format(username = username))
-            sys.exit(-1)
-        
-        self.globalconfig.model.user.cipher = cipher
+        g_messager.trace("please visit %s to get a token" %(ONEKEY_ENTRY))
+        access_token = g_messager.input("input your token:")
+        self.globalconfig.model.user.access_token = access_token
         self.globalconfig.save()
-
-    def app_info(self, parser):
-        data = {}
-        data['app_id'] = self._get_app_id(parser)
-        
-        ret = self.rest.get(API_ENTRY + "/bae/bce/app/info", data = data) 
-        status = BaeInfo(ret["bae_info"])
-        g_messager.output(str(status))
+        self.rest = BaeRest(access_token = access_token, debug = parser.debug)
+        try:
+            self._check_version()
+            g_messager.trace("login success")
+        except Exception:
+            g_messager.warning("token is invalid")
 
     def app_support(self, parser):
         data = {}
         data['app_id'] = self._get_app_id(parser)
 
-        ret    = self.rest.get(API_ENTRY + "/bae/bce/app/support", data = data) 
-        status = BaeSupport(ret)
-        self.appconfig.model.support = status
+        ret = self.rest.get(API_ENTRY + "/bae/bce/app/precreate", data = data) 
+
+        self.appconfig.model.solutions = [BaeSolution(_) for _ in ret["solutions"]]
         self.appconfig.save()
-        g_messager.output(str(status))
+
+        g_messager.output("suppport language types:")
+    
+        for index, solution in enumerate(ret["solutions"]):
+            g_messager.output("%d : %s" %(index+1, solution["name"]))
+
+        ret = self.rest.get(API_ENTRY + "/bae/bce/package/getPackageInfo")
+        self.appconfig.model.packages = [BasicPackage(_) for _ in ret["content"]["packlist"]]
+        self.appconfig.save()
+        
+        g_messager.output("suppport packages:")
+        for index, solution in enumerate(ret["content"]["packlist"]):
+            if solution["type"] != "runtime":
+                continue
+            resources = []
+
+            for k,v in solution["resource"].iteritems():
+                resources.append(" ;%s %sM" %(k, v))
+
+            g_messager.output("%d : %s" %(index+1, ",".join(resources)))
 
     def app_setup(self, parser):
         if self.appconfig:
@@ -192,7 +199,6 @@ class BaeClient:
         self.app_support(parser)
         
     def app_update(self, parser):
-        self.app_support(parser)
         appid         = self._get_app_id(parser)
         bae_app_confs = self._get_bae_confs(appid, parser)
 
@@ -216,29 +222,26 @@ class BaeClient:
         app_id  =  self._get_app_id(parser)
         data = {}
 
-        data["version_type"] = parser.tool or g_messager.select("select code version tool" , self.appconfig.model.support.version_tools)[1]
-        data["lang_type"]    = parser.lang or g_messager.select("programming language", self.appconfig.model.support.lang_types)[1]
-        
-        #java is both web and worker
-        if data["lang_type"] == "java":
-            data["createtype"] = "web"
-        else:
-            data["createtype"]   = parser.type or g_messager.select("bae runtime type"  , self.appconfig.model.support.createtypes)[1]
+        data["version_type"] = g_messager.select("select code version tool" , ['svn', 'git'])[1]
+        index, solution      = g_messager.select("programming language", self.appconfig.model.solutions, "name")
+        #index, package       = g_messager.select("package type", self.appconfig.model.packages, "resource")
 
-        if data["createtype"] == "web":
-            parser.domain        = parser.domain or g_messager.input("domain")
-            if parser.domain.endswith(".duapp.com"):
-                data["domain"] = parser.domain[:-10]
-            else:
-                data["domain"]       = parser.domain
-
-        data["appname"]      = parser.appname or g_messager.input("appname")
-        data["name"]         = parser.appname
+        data["solution"]     = solution.name
+        data["solution_type"] = solution.type
+        if data["solution_type"] == "web":
+            data["domain"]   = g_messager.input("input your domain")
+            if data["domain"].endswith(".duapp.com"):
+                data["domain"] = data["domain"][:-len(".duapp.com")]
+            
+        data["appname"]      =  parser.appname
+        data["name"]         = data["appname"]
+        data["packageid"]    = "3" #256M
+        data["ins_num"]      = "1"
         requestid            = self._gen_request_id()
         data["requestid"]    = requestid
         data["app_id"]       = app_id
 
-        ret = self.rest.get(API_ENTRY + "/bae/bce/app/docreateapp", data = data)
+        ret = self.rest.get(API_ENTRY + "/bae/bce/app/createapp", data = data)
         new_bae_app = self._app_cat_bae(app_id, ret["bae_appid"])
 
         if self.appconfig:
@@ -288,22 +291,6 @@ class BaeClient:
             g_messager.trace("Delete " + ret["bae_appid"] + " with local_dir Success")
         else:
             g_messager.trace("Delete " + ret["bae_appid"] + " without local_dir Success")
-
-    '''
-    def app_push(self, parser):
-        app_id        = self._get_app_id(parser)
-        bae_app_confs = self._get_bae_confs(app_id, parser)
-
-        if not bae_app_confs:
-            g_messager.error("Can't found any bae app to push")
-            sys.exit(-1)
-
-        for bae_app_conf in bae_app_confs:
-            bae_app = bae_app_conf.model
-            tool = code_tool.get_tool(bae_app.version_type, bae_app.repos_url, bae_app_conf.dirname())
-            tool.push()
-            self._do_publish(bae_app_conf)
-    '''     
 
     def _do_publish(self, bae_app_conf):
         data = {}

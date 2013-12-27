@@ -51,6 +51,7 @@ class BaeParser:
                                       nargs = "*")
         app_update_parser.add_argument("-f", "--force", action = "store_true", help = "Force update from server")
         app_create_parser    = app_sub_parser.add_parser("create", add_help = False, parents=[app_common_parser])
+        '''
         app_create_parser.add_argument("-T", "--version-tool",  dest="tool", action="store",
                                    help = "Version control tools")
         app_create_parser.add_argument("-d", "--domain", action="store", help = "Domain prefix")
@@ -58,6 +59,8 @@ class BaeParser:
                                    help = "Programming language you can use '{0} app status' to get more information".format(PROG_NAME))
         app_create_parser.add_argument("-t", "--type",   action="store", 
                                    help = "Bae App type, you can use '{0} app status' to get more information".format(PROG_NAME))
+        '''
+
         app_create_parser.add_argument("appname", action = "store", help = "BAE app name")
 
         app_delete_parser  = app_sub_parser.add_parser("delete", help = "Delete BAE app(NOT baidu developer App)", parents=[app_common_parser])
