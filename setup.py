@@ -34,7 +34,7 @@ if sys.argv[-1] == "publish":
     os.system("find . -name '*.pyc' | xargs rm -rf")
     sys.exit(-1)
 
-requires = ['requests', 'colorama', 'pycrypto', 'PyYAML', 'prettytable>=0.7.0']
+requires = ['requests', 'colorama', 'PyYAML', 'prettytable>=0.7.0']
 
 setup(
     name = "bae",
