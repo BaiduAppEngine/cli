@@ -19,7 +19,6 @@ import json
 from   .messages          import g_messager
 from   ..config.parser    import BaeParser
 from   ..rest.rest        import BaeRest
-from   ..security.user    import BaiduUser 
 from   ..config.constants import *
 from   ..config.config    import *
 from   ..errors           import *
